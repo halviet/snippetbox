@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"github.com/halviet/snippetbox/internal/models"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,9 +13,10 @@ import (
 )
 
 type application struct {
-	l *slog.Logger
+	log *slog.Logger
 
-	snippets *models.SnippetModel
+	snippets      *models.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -31,9 +33,17 @@ func main() {
 	}
 	defer db.Close()
 
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
 	app := &application{
-		l:        logger,
-		snippets: &models.SnippetModel{DB: db},
+		log: logger,
+
+		snippets:      &models.SnippetModel{DB: db},
+		templateCache: templateCache,
 	}
 
 	logger.Info(
